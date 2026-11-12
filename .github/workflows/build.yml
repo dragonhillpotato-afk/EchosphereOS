@@ -22,13 +22,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y live-build debootstrap debian-archive-keyring squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools
 
-      - name: Configure Debian live system
+            - name: Configure Debian live system
         run: |
+          sudo lb clean --purge
           mkdir -p config/package-lists
           echo "task-xfce-desktop firefox-esr network-manager sudo curl git live-boot live-config live-config-systemd" > config/package-lists/echosphere.list.chroot
+
           sudo lb config \
             --distribution trixie \
             --architectures amd64 \
+            --mirror-bootstrap http://deb.debian.org/debian/ \
+            --mirror-bootstrap-security http://security.debian.org/debian-security/ \
+            --mirror-chroot http://deb.debian.org/debian/ \
+            --mirror-chroot-security http://security.debian.org/debian-security/ \
+            --mirror-binary http://deb.debian.org/debian/ \
+            --mirror-binary-security http://security.debian.org/debian-security/ \
             --linux-packages linux-image \
             --linux-flavours amd64 \
             --binary-image iso-hybrid \
