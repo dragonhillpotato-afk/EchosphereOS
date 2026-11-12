@@ -54,6 +54,12 @@ jobs:
           echo "Searching for Ubuntu-specific packages..."
           grep -RniE "casper|linux-generic|live-config-upstart" . \
             --exclude-dir=.git || true
+                  - name: Diagnose Casper reference
+        run: |
+          echo "Checking all build configuration files..."
+          sudo grep -Rni "casper" /etc/live /usr/share/live-build config auto 2>/dev/null || true
+          echo "Checking package lists..."
+          find config -type f -maxdepth 4 -print -exec cat {} \;
       - name: Build ISO
         run: sudo lb build
 
