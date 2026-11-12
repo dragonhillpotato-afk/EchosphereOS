@@ -39,6 +39,7 @@ jobs:
           task-xfce-desktop
           firefox-esr
           network-manager
+          linux-image-amd64
           sudo
           curl
           git
@@ -49,6 +50,8 @@ jobs:
           sudo lb config \
             --distribution trixie \
             --architectures amd64 \
+            --linux-packages linux-image \
+            --linux-flavours amd64 \
             --binary-image iso-hybrid \
             --archive-areas "main contrib non-free non-free-firmware" \
             --mirror-bootstrap http://deb.debian.org/debian/ \
