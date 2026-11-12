@@ -32,10 +32,21 @@ jobs:
             mtools \
             dosfstools
 
-      - name: Create EchosphereOS package list
+      -       - name: Create EchosphereOS package list
         run: |
           mkdir -p config/package-lists
           cat > config/package-lists/echosphere.list.chroot <<'EOF'
+          task-xfce-desktop
+          firefox-esr
+          network-manager
+          linux-image-amd64
+          live-boot
+          live-config
+          live-config-systemd
+          sudo
+          curl
+          git
+          EOF
           task-xfce-desktop
           firefox-esr
           network-manager
