@@ -1,4 +1,5 @@
-name: EchosphereOS Debian Test
+
+name: EchosphereOS ISO Build
 
 on:
   workflow_dispatch:
@@ -10,30 +11,49 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install live-build
+      - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y live-build debootstrap debian-archive-keyring
+          sudo apt-get install -y \
+            live-build \
+            debootstrap \
+            debian-archive-keyring \
+            squashfs-tools \
+            xorriso \
+            grub-pc-bin \
+            grub-efi-amd64-bin \
+            mtools \
+            dosfstools
 
-      - name: Configure Debian
+      - name: Configure EchosphereOS
         run: |
+          mkdir -p config/package-lists
+          echo "live-boot live-config" > config/package-lists/echosphere.list.chroot
+
           sudo lb config \
             --distribution trixie \
             --architectures amd64 \
             --mirror-bootstrap http://deb.debian.org/debian/ \
             --mirror-chroot http://deb.debian.org/debian/ \
             --mirror-binary http://deb.debian.org/debian/ \
+            --linux-packages linux-image \
+            --binary-image iso-hybrid \
             --archive-areas "main"
 
-      - name: Check generated configuration
-        run: |
-          echo "Checking for incorrect Ubuntu mirrors..."
-          grep -Rni "archive.ubuntu.com" config || true
-          echo "Checking Debian mirror settings..."
-          grep -Rni "deb.debian.org" config || true
+      - name: Build ISO
+        run: sudo lb build
+
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: EchosphereOS-ISO
+          path: "*.hybrid.iso"
+          if-no-files-found: error
