@@ -13,19 +13,29 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    container:
-      image: node:20-trixie
-
     timeout-minutes: 90
 
     steps:
       - name: Checkout EchosphereOS
         uses: actions/checkout@v4
 
-      - name: Install Debian build tools
+      - name: Prepare Debian Trixie environment
         run: |
-          apt-get update
-          apt-get install -y \
+          sudo apt-get update
+          sudo apt-get install -y debootstrap systemd-container
+
+      - name: Create Debian build environment
+        run: |
+          sudo debootstrap \
+            --variant=minbase \
+            trixie \
+            /srv/debian \
+            http://deb.debian.org/debian
+
+      - name: Install Debian live-build
+        run: |
+          sudo systemd-nspawn -D /srv/debian apt-get update
+          sudo systemd-nspawn -D /srv/debian apt-get install -y \
             live-build \
             debootstrap \
             debian-archive-keyring \
@@ -36,25 +46,27 @@ jobs:
             mtools \
             dosfstools
 
-      - name: Configure EchosphereOS
+      - name: Prepare EchosphereOS configuration
         run: |
-          mkdir -p config/package-lists
-          echo "task-xfce-desktop live-boot live-config" > config/package-lists/echosphere.list.chroot
+          sudo mkdir -p /srv/debian/build/config/package-lists
+          echo "task-xfce-desktop live-boot live-config" | \
+            sudo tee /srv/debian/build/config/package-lists/echosphere.list.chroot
 
-          lb config \
+          sudo chroot /srv/debian /bin/bash -c \
+            "cd /build && lb config \
             --distribution trixie \
             --architectures amd64 \
             --binary-image iso-hybrid \
-            --archive-areas "main"
+            --archive-areas main"
 
       - name: Build EchosphereOS
         run: |
-          set -o pipefail
-          lb build 2>&1 | tee build.log
+          sudo chroot /srv/debian /bin/bash -c \
+            "cd /build && lb build"
 
       - name: Upload EchosphereOS ISO
         uses: actions/upload-artifact@v4
         with:
           name: EchosphereOS-ISO
-          path: "*.hybrid.iso"
+          path: /srv/debian/build/*.hybrid.iso
           if-no-files-found: error
