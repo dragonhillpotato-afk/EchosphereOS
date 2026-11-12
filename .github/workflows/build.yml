@@ -52,6 +52,7 @@ jobs:
             --architectures amd64 \
             --linux-packages linux-image \
             --linux-flavours amd64 \
+            --initramfs live-boot \
             --binary-image iso-hybrid \
             --archive-areas "main contrib non-free non-free-firmware" \
             --mirror-bootstrap http://deb.debian.org/debian/ \
@@ -69,3 +70,6 @@ jobs:
           name: EchosphereOS-ISO
           path: live-image-amd64.hybrid.iso
           if-no-files-found: error
+      - name: Check for Ubuntu packages
+        run: |
+          grep -Rni casper config/ || true
