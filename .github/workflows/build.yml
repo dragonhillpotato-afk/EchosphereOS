@@ -13,53 +13,46 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Checkout EchosphereOS
         uses: actions/checkout@v4
 
-      - name: Install build tools
+      - name: Build inside official Debian Trixie
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            live-build \
-            debootstrap \
-            debian-archive-keyring \
-            squashfs-tools \
-            xorriso \
-            grub-pc-bin \
-            grub-efi-amd64-bin \
-            mtools \
-            dosfstools
+          docker run --privileged --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            -w /work \
+            debian:trixie \
+            bash -euxo pipefail -c '
+              apt-get update
 
-      - name: Configure EchosphereOS
-        run: |
-          mkdir -p config/package-lists
+              apt-get install -y \
+                live-build \
+                debootstrap \
+                debian-archive-keyring \
+                squashfs-tools \
+                xorriso \
+                grub-pc-bin \
+                grub-efi-amd64-bin \
+                mtools \
+                dosfstools
 
-          echo "task-xfce-desktop live-boot live-config" \
-            > config/package-lists/echosphere.list.chroot
+              mkdir -p config/package-lists
 
-          sudo lb config \
-            --distribution trixie \
-            --architectures amd64 \
-            --mirror-bootstrap http://deb.debian.org/debian/ \
-            --mirror-chroot http://deb.debian.org/debian/ \
-            --mirror-chroot-security http://security.debian.org/debian-security/ \
-            --mirror-binary http://deb.debian.org/debian/ \
-            --mirror-binary-security http://security.debian.org/debian-security/ \
-            --linux-packages linux-image \
-            --binary-image iso-hybrid \
-            --archive-areas main
+              echo "task-xfce-desktop firefox-esr network-manager sudo curl git live-boot live-config" \
+                > config/package-lists/echosphere.list.chroot
 
-      - name: Check for Ubuntu package references
-        run: |
-          echo "Checking configuration..."
-          grep -RniE "linux-generic|casper|security.ubuntu.com|archive.ubuntu.com" config auto 2>/dev/null || true
+              lb config \
+                --distribution trixie \
+                --architectures amd64 \
+                --linux-packages linux-image \
+                --binary-image iso-hybrid \
+                --archive-areas main
 
-      - name: Build EchosphereOS
-        run: |
-          sudo lb build
+              lb build
+            '
 
       - name: Upload EchosphereOS ISO
         uses: actions/upload-artifact@v4
