@@ -1,4 +1,4 @@
-name: EchosphereOS Test
+name: EchosphereOS Debian Test
 
 on:
   workflow_dispatch:
@@ -6,9 +6,34 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: Test GitHub Actions
-        run: echo "EchosphereOS build environment is working!"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install live-build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build debootstrap debian-archive-keyring
+
+      - name: Configure Debian
+        run: |
+          sudo lb config \
+            --distribution trixie \
+            --architectures amd64 \
+            --mirror-bootstrap http://deb.debian.org/debian/ \
+            --mirror-chroot http://deb.debian.org/debian/ \
+            --mirror-binary http://deb.debian.org/debian/ \
+            --archive-areas "main"
+
+      - name: Check generated configuration
+        run: |
+          echo "Checking for incorrect Ubuntu mirrors..."
+          grep -Rni "archive.ubuntu.com" config || true
+          echo "Checking Debian mirror settings..."
+          grep -Rni "deb.debian.org" config || true
