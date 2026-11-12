@@ -1,0 +1,61 @@
+name: Build EchosphereOS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Get EchosphereOS source
+        uses: actions/checkout@v4
+
+      - name: Install Linux build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            live-build \
+            debootstrap \
+            squashfs-tools \
+            xorriso \
+            grub-pc-bin \
+            grub-efi-amd64-bin \
+            mtools \
+            dosfstools
+
+      - name: Create EchosphereOS package list
+        run: |
+          mkdir -p config/package-lists
+          cat > config/package-lists/echosphere.list.chroot <<'EOF'
+          task-xfce-desktop
+          firefox-esr
+          network-manager
+          sudo
+          curl
+          git
+          EOF
+
+      - name: Configure Debian
+        run: |
+          sudo lb config \
+            --distribution trixie \
+            --architectures amd64 \
+            --binary-image iso-hybrid \
+            --archive-areas "main"
+
+      - name: Build EchosphereOS
+        run: sudo lb build
+
+      - name: Upload EchosphereOS ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: EchosphereOS-ISO
+          path: live-image-amd64.hybrid.iso
+          if-no-files-found: error
