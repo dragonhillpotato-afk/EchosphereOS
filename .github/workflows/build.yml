@@ -1,5 +1,5 @@
 
-name: EchosphereOS ISO Build
+name: EchosphereOS Debian Build
 
 on:
   workflow_dispatch:
@@ -13,16 +13,19 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    container:
+      image: node:20-trixie
+
     timeout-minutes: 90
 
     steps:
-      - name: Checkout
+      - name: Checkout EchosphereOS
         uses: actions/checkout@v4
 
-      - name: Install build tools
+      - name: Install Debian build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          apt-get update
+          apt-get install -y \
             live-build \
             debootstrap \
             debian-archive-keyring \
@@ -36,34 +39,20 @@ jobs:
       - name: Configure EchosphereOS
         run: |
           mkdir -p config/package-lists
-          echo "live-boot live-config" > config/package-lists/echosphere.list.chroot
+          echo "task-xfce-desktop live-boot live-config" > config/package-lists/echosphere.list.chroot
 
-                   sudo lb config \
+          lb config \
             --distribution trixie \
             --architectures amd64 \
-            --mirror-bootstrap http://deb.debian.org/debian/ \
-            --mirror-chroot http://deb.debian.org/debian/ \
-            --mirror-chroot-security http://security.debian.org/debian-security/ \
-            --mirror-binary http://deb.debian.org/debian/ \
-            --mirror-binary-security http://security.debian.org/debian-security/ \
-            --linux-packages linux-image \
             --binary-image iso-hybrid \
             --archive-areas "main"
-      - name: Find Ubuntu packages
-        run: |
-          echo "Searching for Ubuntu-specific packages..."
-          grep -RniE "casper|linux-generic|live-config-upstart" . \
-            --exclude-dir=.git || true
-                  - name: Diagnose Casper reference
-        run: |
-          echo "Checking all build configuration files..."
-          sudo grep -Rni "casper" /etc/live /usr/share/live-build config auto 2>/dev/null || true
-          echo "Checking package lists..."
-          find config -type f -maxdepth 4 -print -exec cat {} \;
-      - name: Build ISO
-        run: sudo lb build
 
-      - name: Upload ISO
+      - name: Build EchosphereOS
+        run: |
+          set -o pipefail
+          lb build 2>&1 | tee build.log
+
+      - name: Upload EchosphereOS ISO
         uses: actions/upload-artifact@v4
         with:
           name: EchosphereOS-ISO
