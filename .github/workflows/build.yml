@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - name: Checkout
+      - name: Checkout EchosphereOS
         uses: actions/checkout@v4
 
       - name: Install build tools
@@ -36,6 +36,7 @@ jobs:
       - name: Configure EchosphereOS
         run: |
           mkdir -p config/package-lists
+
           echo "task-xfce-desktop live-boot live-config" \
             > config/package-lists/echosphere.list.chroot
 
@@ -47,14 +48,20 @@ jobs:
             --mirror-chroot-security http://security.debian.org/debian-security/ \
             --mirror-binary http://deb.debian.org/debian/ \
             --mirror-binary-security http://security.debian.org/debian-security/ \
+            --linux-packages linux-image \
             --binary-image iso-hybrid \
             --archive-areas main
 
-      - name: Build ISO
+      - name: Check for Ubuntu package references
+        run: |
+          echo "Checking configuration..."
+          grep -RniE "linux-generic|casper|security.ubuntu.com|archive.ubuntu.com" config auto 2>/dev/null || true
+
+      - name: Build EchosphereOS
         run: |
           sudo lb build
 
-      - name: Upload ISO
+      - name: Upload EchosphereOS ISO
         uses: actions/upload-artifact@v4
         with:
           name: EchosphereOS-ISO
