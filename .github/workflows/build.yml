@@ -49,7 +49,11 @@ jobs:
             --linux-packages linux-image \
             --binary-image iso-hybrid \
             --archive-areas "main"
-
+      - name: Find Ubuntu packages
+        run: |
+          echo "Searching for Ubuntu-specific packages..."
+          grep -RniE "casper|linux-generic|live-config-upstart" . \
+            --exclude-dir=.git || true
       - name: Build ISO
         run: sudo lb build
 
